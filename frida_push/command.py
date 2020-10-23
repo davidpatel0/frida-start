@@ -23,6 +23,7 @@ import os
 import subprocess
 import sys
 from os import path
+import lzma
 
 import requests
 
