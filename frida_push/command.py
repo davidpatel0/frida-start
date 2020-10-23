@@ -40,7 +40,7 @@ except ImportError:
 
 # Just put "adb" below, if adb exists in your system path.
 ADB_PATH = "adb"
-DOWNLOAD_PATH = path.expanduser("~/.frida-push")
+DOWNLOAD_PATH = path.expanduser(os.path.join("~",".frida-push"))
 
 
 def list_devices():
@@ -48,11 +48,11 @@ def list_devices():
     Return devices conected to adb
     :return: list
     """
-    cmd = '{} devices -l | tail -n+2'.format(ADB_PATH)
+    cmd = '{} devices -l'.format(ADB_PATH)
     output = subprocess.check_output(cmd, shell=True).strip().decode("utf-8").replace("\r", "").split("\n")
 
     devices = set()
-    for device in output:
+    for device in output[1:]:
         device = device.strip()
         if device != "":
             devices.add(tuple(device.split()))
