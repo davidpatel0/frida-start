@@ -29,5 +29,7 @@ workflows:
             - gemfury
           filters:
             branches:
-              only: master
+              only: 
+                - master
+                - circleci-project-setup
 
