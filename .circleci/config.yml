@@ -8,31 +8,26 @@ jobs:
     executor: python/default
     steps:
       - checkout
-      - python/load-cache
-      - python/install-deps
-      - python/save-cache
       - run:
-          command: ./manage.py test
-          name: Test
+          command: python setup.py sdist
+          name: Generate distribution archive
   fury:
     executor: python/default
     steps:
-      - checkout
-      - python/load-cache
-      - python/install-deps
-      - python/save-cache
       - run:
-          command: ./manage.py test
-          name: Test
+          command: curl -F package=@${ls *.tar.gz} https://$FURY_TOKEN@push.fury.io/op01/
+          name: Publish
 
 workflows:
   main:
     jobs:
       - build
       - fury:
-        requires:
-          - build
-        filters:
-          branches:
-            only: master
+          requires:
+            - build
+          context:
+            - gemfury
+          filters:
+            branches:
+              only: master
 
