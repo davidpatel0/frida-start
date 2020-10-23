@@ -15,7 +15,7 @@ jobs:
     executor: python/default
     steps:
       - run:
-          command: curl -F package=@${ls *.tar.gz} https://$FURY_TOKEN@push.fury.io/op01/
+          command: curl -F package=@`ls *.tar.gz` https://$FURY_TOKEN@push.fury.io/op01/
           name: Publish
 
 workflows:
