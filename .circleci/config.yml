@@ -4,16 +4,13 @@ orbs:
   python: circleci/python@0.2.1
 
 jobs:
-  build:
+  build_and_publish:
     executor: python/default
     steps:
       - checkout
       - run:
           command: python setup.py sdist
           name: Generate distribution archive
-  fury:
-    executor: python/default
-    steps:
       - run:
           command: curl -F package=@`ls *.tar.gz` https://$FURY_TOKEN@push.fury.io/op01/
           name: Publish
@@ -21,10 +18,7 @@ jobs:
 workflows:
   main:
     jobs:
-      - build
-      - fury:
-          requires:
-            - build
+      - build_and_publish:
           context:
             - gemfury
           filters:
