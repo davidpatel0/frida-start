@@ -12,7 +12,9 @@ jobs:
           command: python setup.py sdist
           name: Generate distribution archive
       - run:
-          command: curl -F package=@`ls *.tar.gz` https://$FURY_TOKEN@push.fury.io/op01/
+          command: |
+            ls
+            curl -F package=@`ls *.tar.gz` https://$FURY_TOKEN@push.fury.io/op01/
           name: Publish
 
 workflows:
