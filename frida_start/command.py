@@ -53,7 +53,7 @@ def list_devices():
     Return devices conected to adb
     :return: list
     """
-    cmd = "{} devices -l".format(ADB_PATH)
+    cmd = f"{ADB_PATH} devices -l"
     output = (
         subprocess.check_output(cmd, shell=True)
         .strip()
@@ -79,9 +79,7 @@ def get_device_arch(transport_id=None):
     """
     arch = None
 
-    getprop_cmd = "{} -t {} shell getprop ro.product.cpu.abi".format(
-        ADB_PATH, transport_id
-    )
+    getprop_cmd = f"{ADB_PATH} -t {transport_id} shell getprop ro.product.cpu.abi"
     getprop_archs = ["armeabi", "armeabi-v7a", "arm64-v8a", "x86", "x86_64"]
     # We know shell=True is bad, but should be fine here.
     output = (
@@ -101,8 +99,7 @@ def get_device_arch(transport_id=None):
 
 def prepare_download_url(arch):
     """Depending upon the arch provided, the function returns the download URL."""
-    base_url = "https://github.com/frida/frida/releases/download/{}/frida-server-{}-android-{}.xz"
-    return base_url.format(FRIDA_VERSION, FRIDA_VERSION, arch)
+    return f"https://github.com/frida/frida/releases/download/{FRIDA_VERSION}/frida-server-{FRIDA_VERSION}-android-{arch}.xz"
 
 
 def download_and_extract(url, fpath, force_download=False):
@@ -137,13 +134,11 @@ def download_and_extract(url, fpath, force_download=False):
         os.unlink(archive_name)
     else:
         log.error(
-            "ERROR: downloading frida-server. Got HTTP status code {} from server.".format(
-                req.status_code
-            )
+            f"ERROR: downloading frida-server. Got HTTP status code {req.status_code} from server."
         )
 
     if data:
-        log.info("Writing file as: {}".format(fpath))
+        log.info(f"Writing file as: {fpath}")
         fpath.write_bytes(data)
         return True
     return False
@@ -197,9 +192,7 @@ def push_and_execute(fname, transport_id=None):
 
     if res.returncode != 0:
         log.error(
-            "Could not push the binary to device. {}{}".format(
-                res.stdout.read().decode(), res.stderr.read().decode()
-            )
+            f"Could not push the binary to device. {res.stdout.read().decode()}{res.stderr.read().decode()}"
         )
         return
 
@@ -218,11 +211,8 @@ def push_and_execute(fname, transport_id=None):
         pass
 
     if ret_code is not None and ret_code != 0:
-        log.error(
-            "Error executing frida-server. {}".format(
-                res.stderr.readline().decode("utf-8")
-            )
-        )
+        decoded = res.stderr.readline().decode("utf-8")
+        log.error(f"Error executing frida-server. {decoded}")
 
 
 def main():
@@ -245,20 +235,20 @@ def main():
     if len(devices) != 1 and ops.device_name is None:
         parser.exit(2, "Multiple devices conected select one with -d\n")
     elif ops.device_name is not None and ops.device_name not in devices:
-        parser.exit(2, "Device {} not found\n".format(ops.device_name))
+        parser.exit(2, f"Device {ops.device_name} not found\n")
 
     if ops.device_name is None:
         ops.device_name, _ = next(iter(devices.items()), None)
 
-    log.info("Current installed Frida version: {}".format(FRIDA_VERSION))
+    log.info(f"Current installed Frida version: {FRIDA_VERSION}")
 
     transport_id = devices[ops.device_name]["transport_id"]
     arch = get_device_arch(transport_id=transport_id)
 
     if arch:
-        log.info("Found arch: {}".format(arch))
+        log.info(f"Found arch: {arch}")
         url = prepare_download_url(arch)
-        fname = "frida-server-{}-android-{}".format(FRIDA_VERSION, arch)
+        fname = f"frida-server-{FRIDA_VERSION}-android-{arch}"
         if download_and_extract(url, fname, ops.force):
             push_and_execute(fname, transport_id=transport_id)
     else:
