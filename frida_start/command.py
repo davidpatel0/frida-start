@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-""" This script aims to automate the process of starting frida-server
+"""This script aims to automate the process of starting frida-server
 on an Android device (for now). The script is a part of AndroidTamer
-project and is based on this issue: 
+project and is based on this issue:
 https://github.com/AndroidTamer/Tools_Repository/issues/234.
 
 This script performs following things:
@@ -17,6 +17,7 @@ This script performs following things:
 * Implement for more devices
 * Implement the feature to kill frida-server afterwards
 """
+
 import argparse
 import logging
 import os
@@ -27,11 +28,14 @@ import lzma
 
 import requests
 
-from frida_push import __version__
+from frida_start import __version__
 
-logging.basicConfig(stream=sys.stdout, level=logging.INFO,
-                    format="[%(asctime)s] [%(name)s: %(levelname)s]: %(message)s")
-log = logging.getLogger("frida-push")
+logging.basicConfig(
+    stream=sys.stdout,
+    level=logging.INFO,
+    format="[%(asctime)s] [%(name)s: %(levelname)s]: %(message)s",
+)
+log = logging.getLogger("frida-start")
 
 try:
     from frida import __version__ as FRIDA_VERSION
@@ -41,7 +45,7 @@ except ImportError:
 
 # Just put "adb" below, if adb exists in your system path.
 ADB_PATH = "adb"
-DOWNLOAD_PATH = path.expanduser(os.path.join("~",".frida-push"))
+DOWNLOAD_PATH = path.expanduser(os.path.join("~", ".frida-start"))
 
 
 def list_devices():
@@ -49,8 +53,14 @@ def list_devices():
     Return devices conected to adb
     :return: list
     """
-    cmd = '{} devices -l'.format(ADB_PATH)
-    output = subprocess.check_output(cmd, shell=True).strip().decode("utf-8").replace("\r", "").split("\n")
+    cmd = "{} devices -l".format(ADB_PATH)
+    output = (
+        subprocess.check_output(cmd, shell=True)
+        .strip()
+        .decode("utf-8")
+        .replace("\r", "")
+        .split("\n")
+    )
 
     devices = set()
     for device in output[1:]:
@@ -58,25 +68,25 @@ def list_devices():
         if device != "":
             devices.add(tuple(device.split()))
 
-    return {
-        d[0]: {
-            t.split(":")[0]: t.split(":")[1] for t in d[2:]
-        } for d in devices
-    }
+    return {d[0]: {t.split(":")[0]: t.split(":")[1] for t in d[2:]} for d in devices}
 
 
 def get_device_arch(transport_id=None):
-    """ This function tries to determine the architecture of the device, so that
+    """This function tries to determine the architecture of the device, so that
     the correct version of Frida-server can be downloaded.
 
     :returns either "arch" that Frida release page understands or None.
     """
     arch = None
 
-    getprop_cmd = "{} -t {} shell getprop ro.product.cpu.abi".format(ADB_PATH, transport_id)
+    getprop_cmd = "{} -t {} shell getprop ro.product.cpu.abi".format(
+        ADB_PATH, transport_id
+    )
     getprop_archs = ["armeabi", "armeabi-v7a", "arm64-v8a", "x86", "x86_64"]
     # We know shell=True is bad, but should be fine here.
-    output = subprocess.check_output(getprop_cmd, shell=True).lower().strip().decode("utf-8")
+    output = (
+        subprocess.check_output(getprop_cmd, shell=True).lower().strip().decode("utf-8")
+    )
 
     if output in getprop_archs:
         if output in ["armeabi", "armeabi-v7a"]:
@@ -90,14 +100,13 @@ def get_device_arch(transport_id=None):
 
 
 def prepare_download_url(arch):
-    """ Depending upon the arch provided, the function returns the download URL.
-    """
+    """Depending upon the arch provided, the function returns the download URL."""
     base_url = "https://github.com/frida/frida/releases/download/{}/frida-server-{}-android-{}.xz"
     return base_url.format(FRIDA_VERSION, FRIDA_VERSION, arch)
 
 
 def download_and_extract(url, fname, force_download=False):
-    """ This function downloads the given URL, extracts .xz archive 
+    """This function downloads the given URL, extracts .xz archive
     as given file name.
 
     :returns True if successful, else False.
@@ -130,7 +139,11 @@ def download_and_extract(url, fname, force_download=False):
 
         os.unlink(archive_name)
     else:
-        log.error("ERROR: downloading frida-server. Got HTTP status code {} from server.".format(req.status_code))
+        log.error(
+            "ERROR: downloading frida-server. Got HTTP status code {} from server.".format(
+                req.status_code
+            )
+        )
 
     if data:
         log.info("Writing file as: {}".format(fname))
@@ -142,22 +155,56 @@ def download_and_extract(url, fname, force_download=False):
 
 def push_and_execute(fname, transport_id=None):
     """This function pushes the file to device, makes it executable,
-    and then finally runs the binary. The function also saves the PID 
+    and then finally runs the binary. The function also saves the PID
     of process in 'frida.pid' file.
     """
 
     fname = path.join(DOWNLOAD_PATH, fname)
 
-    push_cmd = [ADB_PATH, "-t", transport_id, "push", fname, "/data/local/tmp/frida-server"]
-    chmod_cmd = [ADB_PATH, "-t", transport_id, "shell", "chmod 0755 /data/local/tmp/frida-server"]
-    kill_cmd = [ADB_PATH, "-t", transport_id, "shell", "su", "-c", "killall", "frida-server"]
-    execute_cmd = [ADB_PATH, "-t", transport_id, "shell", "su", "-c", "/data/local/tmp/frida-server"]
+    push_cmd = [
+        ADB_PATH,
+        "-t",
+        transport_id,
+        "push",
+        fname,
+        "/data/local/tmp/frida-server",
+    ]
+    chmod_cmd = [
+        ADB_PATH,
+        "-t",
+        transport_id,
+        "shell",
+        "chmod 0755 /data/local/tmp/frida-server",
+    ]
+    kill_cmd = [
+        ADB_PATH,
+        "-t",
+        transport_id,
+        "shell",
+        "su",
+        "-c",
+        "killall",
+        "frida-server",
+    ]
+    execute_cmd = [
+        ADB_PATH,
+        "-t",
+        transport_id,
+        "shell",
+        "su",
+        "-c",
+        "/data/local/tmp/frida-server",
+    ]
 
     res = subprocess.Popen(push_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     res.wait()
 
     if res.returncode != 0:
-        log.error("Could not push the binary to device. {}{}".format(res.stdout.read().decode(), res.stderr.read().decode()))
+        log.error(
+            "Could not push the binary to device. {}{}".format(
+                res.stdout.read().decode(), res.stderr.read().decode()
+            )
+        )
         return
 
     log.info("File pushed to device successfully.")
@@ -175,16 +222,21 @@ def push_and_execute(fname, transport_id=None):
         pass
 
     if ret_code is not None and ret_code != 0:
-        log.error("Error executing frida-server. {}".format(res.stderr.readline().decode("utf-8")))
+        log.error(
+            "Error executing frida-server. {}".format(
+                res.stderr.readline().decode("utf-8")
+            )
+        )
 
 
 def main():
-    """ This function is where the magic happens.
-    """
+    """This function is where the magic happens."""
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--device-name', required=False)
-    parser.add_argument('-f', '--force', help="force download", action="store_true", default=False)
-    parser.add_argument('--version', action="version", version=__version__)
+    parser.add_argument("-d", "--device-name", required=False)
+    parser.add_argument(
+        "-f", "--force", help="force download", action="store_true", default=False
+    )
+    parser.add_argument("--version", action="version", version=__version__)
     ops = parser.parse_args()
 
     devices = list_devices()
@@ -204,7 +256,7 @@ def main():
 
     log.info("Current installed Frida version: {}".format(FRIDA_VERSION))
 
-    transport_id = devices[ops.device_name]['transport_id']
+    transport_id = devices[ops.device_name]["transport_id"]
     arch = get_device_arch(transport_id=transport_id)
 
     if arch:
