@@ -1,6 +1,6 @@
 from setuptools import setup
 
-from frida_push import __version__
+from frida_start import __version__
 
 setup(
     name="frida-start",

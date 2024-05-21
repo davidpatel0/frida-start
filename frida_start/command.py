@@ -23,8 +23,8 @@ import logging
 import os
 import subprocess
 import sys
-from os import path
 import lzma
+import pathlib
 
 import requests
 
@@ -45,7 +45,7 @@ except ImportError:
 
 # Just put "adb" below, if adb exists in your system path.
 ADB_PATH = "adb"
-DOWNLOAD_PATH = path.expanduser(os.path.join("~", ".frida-start"))
+DOWNLOAD_PATH = pathlib.Path.home() / ".frida-start"
 
 
 def list_devices():
@@ -105,29 +105,26 @@ def prepare_download_url(arch):
     return base_url.format(FRIDA_VERSION, FRIDA_VERSION, arch)
 
 
-def download_and_extract(url, fname, force_download=False):
+def download_and_extract(url, fpath, force_download=False):
     """This function downloads the given URL, extracts .xz archive
     as given file name.
 
     :returns True if successful, else False.
     """
     data = None
-    try:
-        os.makedirs(DOWNLOAD_PATH)
-    except:
-        pass
+    DOWNLOAD_PATH.mkdir(exist_ok=True)
 
-    fname = path.join(DOWNLOAD_PATH, fname)
+    fpath = DOWNLOAD_PATH / fpath
 
-    if path.isfile(fname) and not force_download:
-        log.info("Using {} from downloaded cache".format(path.basename(fname)))
+    if fpath.is_file() and not force_download:
+        log.info(f"Using {fpath.name} from downloaded cache")
         return True
 
-    log.warning("Downloading: {}".format(url))
+    log.warning(f"Downloading: {url}")
     req = requests.get(url, stream=True)
     if req.status_code == 200:
         # Downloading and writing the archive.
-        archive_name = fname + ".xz"
+        archive_name = fpath.with_suffix(".xz")
 
         req.raw.decode_content = True
         with open(archive_name, "wb") as fh:
@@ -146,9 +143,8 @@ def download_and_extract(url, fname, force_download=False):
         )
 
     if data:
-        log.info("Writing file as: {}".format(fname))
-        with open(fname, "wb") as frida_server:
-            frida_server.write(data)
+        log.info("Writing file as: {}".format(fpath))
+        fpath.write_bytes(data)
         return True
     return False
 
@@ -159,14 +155,14 @@ def push_and_execute(fname, transport_id=None):
     of process in 'frida.pid' file.
     """
 
-    fname = path.join(DOWNLOAD_PATH, fname)
+    fname = DOWNLOAD_PATH / fname
 
     push_cmd = [
         ADB_PATH,
         "-t",
         transport_id,
         "push",
-        fname,
+        str(fname),
         "/data/local/tmp/frida-server",
     ]
     chmod_cmd = [
@@ -182,7 +178,7 @@ def push_and_execute(fname, transport_id=None):
         transport_id,
         "shell",
         "su",
-        "-c",
+        "0",
         "killall",
         "frida-server",
     ]
@@ -192,7 +188,7 @@ def push_and_execute(fname, transport_id=None):
         transport_id,
         "shell",
         "su",
-        "-c",
+        "0",
         "/data/local/tmp/frida-server",
     ]
 
